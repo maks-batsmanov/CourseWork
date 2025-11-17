@@ -1,9 +1,9 @@
 import os
-from time import strptime
-from datetime import datetime
-import openpyxl
+from dotenv import load_dotenv
+import requests
 import pandas as pd
 from datetime import datetime
+import json
 
 
 def get_greeting():
@@ -73,29 +73,96 @@ def executed_operations(data_frame):
 def get_amount_by_card(data_frame):
     """Функция принимает dataframe в указанном диапазоне, со статусом OK.
     Возвращает сумму расходов"""
-    # not_null_numbers = data_frame.loc[data_frame['Номер карты'].notnull()]
-    # cards = list(set(not_null_numbers['Номер карты']))
-    # dict_cards = {}
-    # for card, amount in
 
-    cards_df = data_frame.groupby('Номер карты')
-    new_dt = cards_df['Сумма операции'].sum()
-
-    print(new_dt)
-    return []
+    negative_amount = data_frame[data_frame['Сумма операции'] < 0]
+    group_data = negative_amount.groupby('Номер карты')
+    result = group_data['Сумма операции'].sum()
+    return result
 
 
+def get_dict_with_cards(series):
+    """Функция принимает series с номерами карт и суммой расходов по ним.
+    Возвращает словарь: {
+      "last_digits": number,
+      "total_spent": sum,
+      "cashback": cashback
+    }"""
+    list_of_dict = [
+        {
+        'last_digits': card.replace('*', ''),
+        'total_spent': abs(sum_),
+        'cashback': round(abs(sum_) / 100, 2)
+        }
+        for card, sum_ in series.items()
+    ]
+    return list_of_dict
 
-if __name__ == '__main__':
-    data = read_excel('operations.xlsx')
-    interval = get_date_interval('2020-07-31 23:30:00')
-    select = selection_by_date(data, interval)
-    data = executed_operations(select)
-    data = get_amount_by_card(data)
-    print(data)
+
+def get_top_transaction(data_frame):
+    """Функция принимает отсортированный по статусу dataframe
+    и возвращает топ 5 транзакций по сумме платежа"""
+    dt_top_sorted = data_frame.sort_values(by=['Сумма операции']).head()
+    result = [
+        {
+            'date': row['Дата платежа'],
+            'amount': row['Сумма платежа'],
+            'category': row['Категория'],
+            'description': row['Описание']
+        }
+        for index, row in dt_top_sorted.iterrows()
+    ]
+    return result
 
 
-# user_date = input('Ввод: ').strip()
-#     pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-# if pattern.fullmatch(user_date) is None:
+def get_exchange_rate(file_name):
+    """Функция принимает имя json файла из корня проекта, файл содержит валюты для получения обменного курса.
+     Функция возвращает обменный курс по валютам содержащимся в файле."""
 
+    load_dotenv()
+    api_key = os.getenv('API_KEY')
+
+    current_dir = os.path.dirname(__file__)
+    project_root = os.path.dirname(current_dir)
+    path_to_file = os.path.join(project_root, file_name)
+
+    with open(path_to_file, 'r', encoding='utf-8') as file:
+        parsed_data = json.load(file)
+    number_of_iterations = (len(parsed_data['user_currencies']))
+
+    list_of_rates = []
+    i = 0
+    while i < number_of_iterations:
+
+        from_ = parsed_data['user_currencies'][i]
+
+        url = f"https://api.apilayer.com/exchangerates_data/convert?to=RUB&from={from_}&amount=1"
+
+        payload = {}
+        headers = {
+            "apikey": api_key
+        }
+        response = requests.request('GET', url, headers=headers, data = payload)
+        status_code = response.status_code
+        result = response.json()
+        dicts = {
+            'currency': result['query']['from'],
+            'rate': result['result']
+        }
+        list_of_rates.append(dicts)
+
+        i += 1
+    return list_of_rates
+
+
+
+# if __name__ == '__main__':
+#     data = read_excel('operations.xlsx')
+#     interval = get_date_interval('2021-12-02 23:50:00')
+#     select = selection_by_date(data, interval)
+#     data_main = executed_operations(select)
+#     data = get_amount_by_card(data)
+#     data = get_dict_with_cards(data)
+#     # data_2 =get_top_transaction(data_main)
+#     print(get_exchange_rate('user_settings.json'))
+
+# , ascending=False
