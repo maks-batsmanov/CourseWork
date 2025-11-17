@@ -114,12 +114,9 @@ def get_top_transaction(data_frame):
     return result
 
 
-def get_exchange_rate(file_name):
+def reading_file_user_settings(file_name):
     """Функция принимает имя json файла из корня проекта, файл содержит валюты для получения обменного курса.
-     Функция возвращает обменный курс по валютам содержащимся в файле."""
-
-    load_dotenv()
-    api_key = os.getenv('API_KEY')
+    Читает файл с пользовательскими настройками и возвращает phyton-объект """
 
     current_dir = os.path.dirname(__file__)
     project_root = os.path.dirname(current_dir)
@@ -127,14 +124,24 @@ def get_exchange_rate(file_name):
 
     with open(path_to_file, 'r', encoding='utf-8') as file:
         parsed_data = json.load(file)
-    number_of_iterations = (len(parsed_data['user_currencies']))
+    return parsed_data
+
+
+def get_exchange_rate(data_json):
+    """.
+     Функция возвращает обменный курс по валютам содержащимся в файле."""
+
+    load_dotenv()
+    api_key = os.getenv('API_KEY_EXCHANGE_RATE')
+
+
+    number_of_iterations = len(data_json['user_currencies'])
 
     list_of_rates = []
     i = 0
     while i < number_of_iterations:
 
-        from_ = parsed_data['user_currencies'][i]
-
+        from_ = data_json['user_currencies'][i]
         url = f"https://api.apilayer.com/exchangerates_data/convert?to=RUB&from={from_}&amount=1"
 
         payload = {}
@@ -154,15 +161,51 @@ def get_exchange_rate(file_name):
     return list_of_rates
 
 
+def get_stocks(data_json):
+    """Функция принимает имя json файла из корня проекта,
+    файл содержит тикеры акций для получения актуальных цен на бирже.
+    Функция возвращает обменный курс по валютам содержащимся в файле."""
+
+    load_dotenv()
+    api_key = os.getenv('API_KEY_STOCKS')
+
+    number_of_iterations = len(data_json['user_stocks'])
+
+    list_of_stocks = []
+    i = 0
+    while i < number_of_iterations:
+
+        stock = data_json['user_stocks'][i]
+        url = f"https://api.twelvedata.com/price?symbol={stock}&apikey={api_key}"
+        payload = {}
+        headers = {
+            "apikey": api_key
+        }
+        response = requests.request('GET', url, headers=headers, data = payload)
+        status_code = response.status_code
+        result = response.json()
+        dicts = {
+            'stock': stock,
+            'price': result['price']
+        }
+        list_of_stocks.append(dicts)
+        i += 1
+    return list_of_stocks
+
+
+
 
 # if __name__ == '__main__':
-#     data = read_excel('operations.xlsx')
-#     interval = get_date_interval('2021-12-02 23:50:00')
-#     select = selection_by_date(data, interval)
-#     data_main = executed_operations(select)
-#     data = get_amount_by_card(data)
-#     data = get_dict_with_cards(data)
-#     # data_2 =get_top_transaction(data_main)
-#     print(get_exchange_rate('user_settings.json'))
-
-# , ascending=False
+#     # data = read_excel('operations.xlsx')
+#     # interval = get_date_interval('2021-12-02 23:50:00')
+#     # select = selection_by_date(data, interval)
+#     # data_main = executed_operations(select)
+#     # data = get_amount_by_card(data)
+#     # data = get_dict_with_cards(data)
+#     # data_top =get_top_transaction(data_main)
+#     data_json_file = reading_file_user_settings('user_settings.json')
+#     # exchange_rate = get_exchange_rate(data_json_file)
+#     stocks = get_stocks(data_json_file)
+#     print(get_exchange_rate(data_json_file))
+#
+# # , ascending=False
