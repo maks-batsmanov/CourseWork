@@ -1,4 +1,6 @@
 import os
+import re
+
 from dotenv import load_dotenv
 import requests
 import pandas as pd
@@ -27,14 +29,22 @@ def read_excel(file_name):
     current_dir = os.path.dirname(__file__)
     project_root = os.path.dirname(current_dir)
     path_to_file = os.path.join(project_root, 'data', file_name)
-    excel_data = pd.read_excel(path_to_file, engine='openpyxl')
+    try:
+        excel_data = pd.read_excel(path_to_file, engine='openpyxl')
+    except Exception as ex:
+        return f'Ошибка чтения файла. {ex}'
     return excel_data
 
 
 def get_date_interval(date_time, date_format = '%Y-%m-%d %H:%M:%S'):
     """Функция принимает дату в формате YYYY-MM-DD HH:MM:SS
-    и возвращает транзакции с указанной даты по последнюю известную.
-    На вход принимает данные из excel-файла"""
+    возвращает список с двумя датами:
+    дата от начала месяца, на который выпадает входящая дата, по входящую дату."""
+    pattern = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+    result = re.findall(pattern, date_time, flags=0)
+    if not result:
+        print('Ошибка. Неверная дата')
+        return result
     dt = datetime.strptime(date_time, date_format)
     start_of_month = dt.replace(day=1, hour=0, minute=0, second=0)
 
@@ -45,7 +55,7 @@ def get_date_interval(date_time, date_format = '%Y-%m-%d %H:%M:%S'):
 
 
 def selection_by_date(dataframe, list_of_date):
-    """Функция принимает временной диапазон от начала месяца
+    """Функция принимает dataframe и временной диапазон от начала месяца
     до какого-то дня и возвращает список транзакций из данного диапазона"""
     start, end = list_of_date
 
@@ -72,7 +82,7 @@ def executed_operations(data_frame):
 
 def get_amount_by_card(data_frame):
     """Функция принимает dataframe в указанном диапазоне, со статусом OK.
-    Возвращает сумму расходов"""
+    Возвращает сумму расходов по каждой карте в формате series"""
 
     negative_amount = data_frame[data_frame['Сумма операции'] < 0]
     group_data = negative_amount.groupby('Номер карты')
@@ -82,11 +92,11 @@ def get_amount_by_card(data_frame):
 
 def get_dict_with_cards(series):
     """Функция принимает series с номерами карт и суммой расходов по ним.
-    Возвращает словарь: {
+    Возвращает список словарей: [{
       "last_digits": number,
       "total_spent": sum,
       "cashback": cashback
-    }"""
+    }]"""
     list_of_dict = [
         {
         'last_digits': card.replace('*', ''),
@@ -101,7 +111,7 @@ def get_dict_with_cards(series):
 def get_top_transaction(data_frame):
     """Функция принимает отсортированный по статусу dataframe
     и возвращает топ 5 транзакций по сумме платежа"""
-    dt_top_sorted = data_frame.sort_values(by=['Сумма операции']).head()
+    dt_top_sorted = data_frame.sort_values(by=['Сумма платежа']).head()
     result = [
         {
             'date': row['Дата платежа'],
@@ -116,7 +126,7 @@ def get_top_transaction(data_frame):
 
 def reading_file_user_settings(file_name):
     """Функция принимает имя json файла из корня проекта, файл содержит валюты для получения обменного курса.
-    Читает файл с пользовательскими настройками и возвращает phyton-объект """
+    Читает файл с пользовательскими настройками и возвращает словарь"""
 
     current_dir = os.path.dirname(__file__)
     project_root = os.path.dirname(current_dir)
@@ -128,9 +138,7 @@ def reading_file_user_settings(file_name):
 
 
 def get_exchange_rate(data_json):
-    """.
-     Функция возвращает обменный курс по валютам содержащимся в файле."""
-
+    """ Функция принимает словарь с валютами и возвращает обменный курс по валютам."""
     load_dotenv()
     api_key = os.getenv('API_KEY_EXCHANGE_RATE')
 
@@ -150,13 +158,16 @@ def get_exchange_rate(data_json):
         }
         response = requests.request('GET', url, headers=headers, data = payload)
         status_code = response.status_code
+        if status_code != 200:
+            return f"API Error: {response.status_code}"
+
         result = response.json()
         dicts = {
             'currency': result['query']['from'],
             'rate': result['result']
         }
         list_of_rates.append(dicts)
-
+        print(status_code)
         i += 1
     return list_of_rates
 
@@ -183,6 +194,9 @@ def get_stocks(data_json):
         }
         response = requests.request('GET', url, headers=headers, data = payload)
         status_code = response.status_code
+        if status_code != 200:
+            return f"API Error: {response.status_code}"
+
         result = response.json()
         dicts = {
             'stock': stock,
@@ -193,19 +207,17 @@ def get_stocks(data_json):
     return list_of_stocks
 
 
-
-
 # if __name__ == '__main__':
-#     # data = read_excel('operations.xlsx')
-#     # interval = get_date_interval('2021-12-02 23:50:00')
-#     # select = selection_by_date(data, interval)
-#     # data_main = executed_operations(select)
-#     # data = get_amount_by_card(data)
+#     data = read_excel('operations.xlsx')
+#     interval = get_date_interval('2021-12-02 23:50:00')
+#     select = selection_by_date(data, interval)
+#     data_main = executed_operations(select)
+#     data = get_amount_by_card(data)
 #     # data = get_dict_with_cards(data)
-#     # data_top =get_top_transaction(data_main)
+#     data_top =get_top_transaction(data_main)
 #     data_json_file = reading_file_user_settings('user_settings.json')
-#     # exchange_rate = get_exchange_rate(data_json_file)
+#     exchange_rate = get_exchange_rate(data_json_file)
 #     stocks = get_stocks(data_json_file)
-#     print(get_exchange_rate(data_json_file))
+#     print(stocks)
 #
-# # , ascending=False
+# # # , ascending=False
