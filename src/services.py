@@ -21,16 +21,4 @@ def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) 
          if float(x.get('Сумма операции', '')) % limit > 0])
     if not list_round:
         return 0.0
-    return list_round
-
-
-input_data = [
-    {'Дата операции': '2024-02-13', 'Сумма операции': 765.00},
-    {'Дата операции': '2024-02-02', 'Сумма операции': 1105.50},
-    {'Дата операции': '2024-06-07', 'Сумма операции': 220.30},
-    {'Дата операции': '2024-06-19', 'Сумма операции': 118.12},
-    {'Дата операции': '2024-06-29', 'Сумма операции': 350.00}
-]
-
-if __name__ == '__main__':
-    print(investment_bank('2024-02', input_data, 50))
+    return round(list_round, 2)
