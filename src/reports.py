@@ -36,7 +36,8 @@ def writing_reports(func):
 
 @writing_reports
 def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> float:
-    """Функция возвращает траты по заданной категории за последние три месяца от переданной даты."""
+    """Функция принимает датафрейм, категорию, и ,опционально, дату.
+    Возвращает траты по заданной категории за последние три месяца от переданной даты."""
     logger.info("Начало работы функции spending_by_category")
     if transactions.empty or not category:
         print(transactions)
