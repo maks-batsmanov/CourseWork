@@ -181,7 +181,7 @@ def get_exchange_rate(data_json):
             logger.error(
                 f"Ошибка в функции get_exchange_rate при обращении к api сервису. Статус код: {response.status_code}"
             )
-            return f"API Error: {response.status_code}"
+            return f"API Error: {status_code}"
 
         result = response.json()
         dicts = {"currency": result["query"]["from"], "rate": result["result"]}
@@ -216,7 +216,7 @@ def get_stocks(data_json):
             logger.error(
                 f"Ошибка в функции get_stocks при обращении к api сервису. Статус код: {response.status_code}"
             )
-            return f"API Error: {response.status_code}"
+            return f"API Error: {status_code}"
 
         result = response.json()
         dicts = {"stock": stock, "price": result["price"]}
