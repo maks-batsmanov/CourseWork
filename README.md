@@ -6,7 +6,7 @@
 ## Установка:
 1. Клонируйте репозиторий:
 ```commandline
-https://github.com/maks-batsmanov/CourseWork
+https://github.com/maks-batsmanov/CourseWork_.git
 ```
 2. Установите зависимости:
 ```commandline
