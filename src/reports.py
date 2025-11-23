@@ -36,7 +36,7 @@ def writing_reports(func):
 
 @writing_reports
 def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> float:
-    """Функция принимает датафрейм, категорию, и ,опционально, дату.
+    """Функция принимает датафрейм, категорию, и опционально, дату.
     Возвращает траты по заданной категории за последние три месяца от переданной даты."""
     logger.info("Начало работы функции spending_by_category")
     if transactions.empty or not category:
@@ -47,7 +47,8 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
         if filtered_df.empty:
             return 0.0
 
-        result = filtered_by_category(filtered_df, category)
+        category_normalaized = category.title()
+        result = filtered_by_category(filtered_df, category_normalaized)
         logger.info("Функция spending_by_category отработала успешно")
         return abs(round(result, 2))
     except Exception as ex:
@@ -67,10 +68,11 @@ def get_time_period(transactions, date):
 
         start_period = dt - relativedelta(months=3)
 
-        transactions["Дата операции"] = pd.to_datetime(transactions["Дата операции"], format="mixed")
+        df = transactions.copy()
+        df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="mixed")
 
-        filtered_df = transactions[
-            (transactions["Дата операции"] >= start_period) & (transactions["Дата операции"] <= dt)
+        filtered_df = df[
+            (df["Дата операции"] >= start_period) & (df["Дата операции"] <= dt)
         ]
         logger.info("Функция get_time_period отработала успешно")
         return filtered_df
@@ -85,9 +87,8 @@ def filtered_by_category(transactions, category):
     logger.info("Начало работы функции filtered_by_category")
     try:
         if "Категория" not in transactions.columns:
-            print('В переданном датафрейме нет колонки "Категория"')
+            logger.error('Нет колонки "Категория"')
             return 0.0
-
         if category not in transactions["Категория"].values:
             return 0.0
         else:
@@ -98,4 +99,4 @@ def filtered_by_category(transactions, category):
     except Exception as ex:
         print(f"Ошибка в функции filtered_by_category{ex}")
         logger.error(f"Ошибка в функции filtered_by_category {ex}")
-        return 0.0
+        return 0.2
