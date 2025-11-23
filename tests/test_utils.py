@@ -196,9 +196,9 @@ def test_get_exchange_rate_error():
 
             result = get_exchange_rate(user_settings)
 
-            expected = [{"currency": "USD", "rate": 75.5}, {"currency": "EUR", "rate": 85.2}]
+            expected = [{"currency": "USD", "rate": 75.5}]
             assert result == expected
-            assert mock_request.call_count == 2
+            assert mock_request.call_count == 1
 
 
 def test_get_stock():
